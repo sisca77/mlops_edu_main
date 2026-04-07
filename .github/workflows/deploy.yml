@@ -1,0 +1,106 @@
+# ============================================
+# CI/CD 파이프라인: GitHub Actions → ECR → ECS
+# ============================================
+# 이 워크플로우가 하는 일:
+#   1. main 브랜치에 push되면 자동 실행
+#   2. Docker 이미지를 빌드
+#   3. AWS ECR에 이미지를 push
+#   4. AWS ECS 서비스를 새 이미지로 업데이트
+# ============================================
+
+name: Deploy to AWS ECS
+
+# ============================================
+# 언제 실행할 것인가?
+# ============================================
+on:
+  push:
+    branches: [ main ]    # main 브랜치에 push될 때
+  workflow_dispatch:       # 수동으로도 실행 가능 (GitHub UI에서 버튼 클릭)
+
+# ============================================
+# 환경 변수 (여러 step에서 공통으로 사용)
+# ============================================
+env:
+  AWS_REGION: ap-northeast-2                    # 서울 리전
+  ECR_REPOSITORY: mlops-loan-api                # ECR 저장소 이름
+  ECS_CLUSTER: mlops-cluster                    # ECS 클러스터 이름
+  ECS_SERVICE: mlops-loan-service               # ECS 서비스 이름
+  ECS_TASK_DEFINITION: .aws/task-definition.json  # 태스크 정의 파일 경로
+  CONTAINER_NAME: mlops-loan-container          # 컨테이너 이름
+
+# ============================================
+# 작업(Job) 정의
+# ============================================
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest    # GitHub에서 제공하는 Ubuntu 서버에서 실행
+
+    steps:
+      # ------------------------------------------
+      # Step 1: 소스 코드 가져오기
+      # ------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ------------------------------------------
+      # Step 2: AWS 인증 설정
+      #   - GitHub Secrets에 저장된 AWS 키 사용
+      # ------------------------------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ------------------------------------------
+      # Step 3: ECR 로그인
+      #   - Docker 이미지를 push하기 위해 ECR에 로그인
+      # ------------------------------------------
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ------------------------------------------
+      # Step 4: Docker 이미지 빌드 & ECR에 Push
+      # ------------------------------------------
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Docker 이미지 빌드
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+
+          # ECR에 push
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          # 다음 step에서 사용할 수 있도록 이미지 URI 저장
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # ------------------------------------------
+      # Step 5: ECS 태스크 정의에 새 이미지 URI 반영
+      # ------------------------------------------
+      - name: Fill in the new image ID in the ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      # ------------------------------------------
+      # Step 6: ECS 서비스 업데이트 (새 버전 배포)
+      # ------------------------------------------
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true    # 배포 완료까지 대기

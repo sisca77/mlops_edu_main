@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+env
+
+# 모델과 데이터는 S3에서 다운로드하므로 이미지에 포함하지 않음
+models/
+data/
+
+# 노트북 (배포에 불필요)
+01_notebooks/
+
+# 환경 변수 파일 (비밀키 보호 - ECS 환경변수로 주입)
+.env
+
+# IDE
+.vscode
+.idea
+
+# 기타
+*.md
+*.txt
+!requirements.txt
