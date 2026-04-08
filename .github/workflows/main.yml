@@ -29,7 +29,7 @@ jobs:
             # miniconda 환경 활성화 및 패키지 설치
             source ~/miniconda3/etc/profile.d/conda.sh
             conda activate mlops
-            pip install --no-cache-dir --no-build-isolation -r requirements.txt
+            # pip install --no-cache-dir --no-build-isolation -r requirements.txt
 
             # 기존 서버 종료 후 재시작
             pkill -f "uvicorn app.main:app" || true
