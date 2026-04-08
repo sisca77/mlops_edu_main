@@ -33,6 +33,10 @@ app = FastAPI(
     lifespan = lifespan
 )
 
+@app.get('/')
+async def root():
+    return {"message": "안녕하세요. 대출심사 사이트입니다"}
+
 @app.get('/health')
 async def health_check():
     model = app.state.model 
