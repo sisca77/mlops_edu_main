@@ -23,7 +23,7 @@ jobs:
 
             # 코드 최신화
             git remote set-url origin 
-            https://ubuntu:${{secrets.GIT_TOKEN}}N@github.com/YOUR_USERNAME/YOUR_REPO.git
+            https://sisca77:${{secrets.GIT_TOKEN}}@github.com/sisca77/mlops_edu_main.git
             git pull origin main
 
             # miniconda 환경 활성화 및 패키지 설치
