@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/home/ubuntu/mlops_edu_main
+            cd /home/ubuntu/mlops_edu_main
 
             # 코드 최신화
             git pull https://${{ secrets.GIT_TOKEN }}@github.com/sisca77/mlops_edu_main.git main
@@ -33,8 +33,12 @@ jobs:
             fuser -k 8000/tcp || true
             sleep 2
 
-            # 서버 시작
-            uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/loan-api.log 2>&1 &
+            # 서버 시작 (nohup으로 SSH 종료 후에도 유지)
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/loan-api.log 2>&1 &
+            sleep 3
+
+            # 서버 정상 시작 확인
+            curl -s http://localhost:8000/ || echo "서버 시작 실패 - 로그 확인: cat ~/loan-api.log"
 
 
             
