@@ -1,8 +1,7 @@
 import os
 import logging
 import joblib
-import boto3
-import pandas as pd
+import pandas as pd 
 from typing import Any
 from pathlib import Path
 
@@ -32,34 +31,11 @@ class LoanModel :
         self.threshold: float = 0.5
         self.model_version: str = "1.0.0"
 
-    @staticmethod
-    def _download_from_s3(bucket: str, s3_prefix: str, local_dir: Path) -> None:
-        """S3에서 모델 파일들을 다운로드한다."""
-        s3 = boto3.client("s3")
-        local_dir.mkdir(parents=True, exist_ok=True)
-
-        resp = s3.list_objects_v2(Bucket=bucket, Prefix=s3_prefix)
-        for obj in resp.get("Contents", []):
-            key = obj["Key"]
-            filename = Path(key).name
-            if not filename:
-                continue
-            local_file = local_dir / filename
-            logger.info(f"S3 다운로드: s3://{bucket}/{key} -> {local_file}")
-            s3.download_file(bucket, key, str(local_file))
-
     def load(self, model_dir: str = "models") -> None:
         # 스크립트 위치를 기준으로 모델 디렉토리 경로 계산
         script_dir = Path(__file__).parent
         model_path = script_dir.parent / model_dir
-
-        # S3 환경변수가 설정되어 있으면 S3에서 다운로드
-        s3_bucket = os.getenv("S3_BUCKET")
-        s3_model_prefix = os.getenv("S3_MODEL_PREFIX", "models/")
-        if s3_bucket and not (model_path / "loan_pipeline.pkl").exists():
-            logger.info(f"S3에서 모델 다운로드: s3://{s3_bucket}/{s3_model_prefix}")
-            self._download_from_s3(s3_bucket, s3_model_prefix, model_path)
-
+        
         pipeline_path = model_path / "loan_pipeline.pkl"
         encoder_path = model_path / "label_encoders.pkl"
         feature_names_path = model_path / "feature_names.pkl"

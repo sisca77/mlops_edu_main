@@ -133,39 +133,3 @@ class LoanResponse(BaseModel):
         ...,
         description="리스크 등급 ('A', 'B', 'C', 'D')"
     )
-
-
-class AskRequest(BaseModel):
-    """AI 질문 요청 스키마."""
-    question: str = Field(
-        ...,
-        min_length=1,
-        description="질문 내용",
-        examples=["대출 금리가 너무 높아서 걱정이에요"],
-    )
-
-
-class AskResponse(BaseModel):
-    """AI 질문 응답 스키마 (답변 + 감성분석 + 카테고리 분류)."""
-    question: str = Field(
-        ...,
-        description="원본 질문",
-    )
-    answer: str = Field(
-        ...,
-        description="AI 답변",
-    )
-    sentiment: str = Field(
-        ...,
-        description="감성 분석 결과 (긍정 | 부정 | 중립)",
-    )
-    sentiment_score: float = Field(
-        ...,
-        ge=0.0,
-        le=1.0,
-        description="감성 점수 (0.0~1.0, 1.0이 가장 긍정)",
-    )
-    category: str = Field(
-        ...,
-        description="카테고리 (대출/금융, 부동산, 신용/채무, 일반상담, 기타)",
-    )

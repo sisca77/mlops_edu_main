@@ -1,11 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import HTTPException
+from http.client import HTTPException
 import logging
 
 from app.model import LoanModel
-from app.schemas import LoanRequest, LoanResponse, AskRequest, AskResponse
-from app.gemini_client import ask_gemini, analyze_question
-from fastapi import FastAPI, HTTPException
+from app.schemas import LoanRequest, LoanResponse
+from fastapi import FastAPI
 
 
 logging.basicConfig(level=logging.INFO)
@@ -26,8 +25,6 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info('대출 심사 API를 종료합니다.')
-    
-
 
 app = FastAPI(
     title = '대출 심사 예측 API',
@@ -36,11 +33,6 @@ app = FastAPI(
     lifespan = lifespan
 )
 
-@app.get('/')
-async def root():
-    return {"message": "대출 심사 예측 API에 오신 것을 환영합니다. \
-            /predict 엔드포인트를 사용하여 대출 승인 여부를 예측하세요."}
-    
 @app.get('/health')
 async def health_check():
     model = app.state.model 
@@ -57,7 +49,7 @@ async def predict(request: LoanRequest):
     try:
 
         result = model.predict(request.model_dump())
-        return LoanResponse(**result)
+        LoanResponse(**result)
     
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
@@ -67,11 +59,7 @@ async def predict(request: LoanRequest):
         raise HTTPException(status_code=500)
 
 
-@app.post("/ask", response_model=AskResponse)
-async def ask(request: AskRequest):
-    try:
-        result = analyze_question(request.question)
-        return AskResponse(question=request.question, **result)
-    except Exception as e:
-        logger.error(f"AI API 오류: {e}")
-        raise HTTPException(status_code=500, detail="AI API 호출 중 오류가 발생했습니다.")
+
+
+
+
