@@ -35,7 +35,7 @@ app = FastAPI(
 
 @app.get('/')
 async def root():
-    return {"message": "안녕하세요. 대출심사 사이트입니다"}
+    return {"message": "안녕하세요. 환영합니다!! 대출심사 사이트입니다"}
 
 @app.get('/health')
 async def health_check():
